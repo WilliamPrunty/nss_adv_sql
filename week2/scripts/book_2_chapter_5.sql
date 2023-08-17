@@ -109,7 +109,7 @@ ORDER BY times_purchased DESC
 
 SELECT
 	employee_type_name,
-	COUNT(*) sales_by_emp_type
+	COUNT(*) AS sales_by_emp_type
 FROM sales
 	LEFT JOIN vehicles AS v USING(vehicle_id)
 	LEFT JOIN vehicletypes AS vt USING(vehicle_type_id)

@@ -2,15 +2,19 @@
 --1. For the top 5 dealerships, which employees made the most sales?
 	-- Top 5 dealership has the greatest number of leases and purchases, combined.
 	-- A sale is the PURCHASE of a vehicle.
-with top_5 AS (SELECT 
-					business_name,
-			   		dealership_id,
-					COUNT(*) AS total_transactions
-			  FROM sales
-					LEFT JOIN dealerships AS d USING (dealership_id)
-			  GROUP BY d.business_name, dealership_id
-			  ORDER BY total_transactions DESC
-			  LIMIT 5)
+with top_5 AS 
+
+(
+SELECT 
+	business_name,
+	dealership_id,
+	COUNT(*) AS total_transactions
+FROM sales
+	LEFT JOIN dealerships AS d USING (dealership_id)
+GROUP BY d.business_name, dealership_id
+ORDER BY total_transactions DESC
+LIMIT 5
+)
 
 SELECT 
 	first_name,
@@ -31,59 +35,71 @@ ORDER BY num_sales DESC
 
 
 --2. For the top 5 dealerships, which vehicle models were the most popular in sales?
-with top_5 AS (SELECT 
-					business_name,
-			   		dealership_id,
-					COUNT(*) AS total_transactions
-			  FROM sales
-					LEFT JOIN dealerships AS d USING (dealership_id)
-			  GROUP BY d.business_name, dealership_id
-			  ORDER BY total_transactions DESC
-			  LIMIT 5)
+WITH ranked AS 
 
+(			  
 SELECT 
+	business_name,
 	model,
-	COUNT(*) AS sales
+	COUNT(*) AS total_sales,
+	ROW_NUMBER() OVER(PARTITION BY business_name ORDER BY COUNT(*) DESC) AS model_rank	
 FROM sales
 	LEFT JOIN vehicles USING(vehicle_id)
 	LEFT JOIN vehicletypes USING(vehicle_type_id)
-WHERE dealership_id IN (SELECT dealership_id
-					   FROM top_5)
-	AND sales_type_id = (SELECT sales_type_id
-						FROM salestypes
-						WHERE sales_type_name = 'Purchase')
-GROUP BY model
-ORDER BY sales DESC
-;
+	LEFT JOIN dealerships USING(dealership_id)
+WHERE dealership_id IN 
+	(SELECT dealership_id 
+	FROM sales
+	GROUP BY dealership_id
+	ORDER BY COUNT(*) DESC
+	LIMIT 5)
+GROUP BY business_name, model
+)
+
+SELECT *
+FROM ranked
+WHERE model_rank <= 3 
+ORDER BY business_name, model_rank;
+
 
 --3. For the top 5 dealerships, were there more sales or leases?
-with top_5 AS (SELECT 
-					business_name,
-			   		dealership_id,
-					COUNT(*) AS total_transactions
-			  FROM sales
-					LEFT JOIN dealerships AS d USING (dealership_id)
-			  GROUP BY d.business_name, dealership_id
-			  ORDER BY total_transactions DESC
-			  LIMIT 5)
+WITH top_5 AS 
+
+(
+SELECT 
+	business_name,
+	dealership_id,
+	COUNT(*) AS total_transactions
+FROM sales
+	LEFT JOIN dealerships AS d USING (dealership_id)
+GROUP BY d.business_name, dealership_id
+ORDER BY total_transactions DESC
+LIMIT 5
+)
 
 SELECT 
-	sales_type_name,
-	COUNT(*)
+	business_name,
+	COUNT(CASE WHEN sales_type_name = 'Lease' THEN vehicle_id END) AS leases,
+	COUNT(CASE WHEN sales_type_name = 'Purchase' THEN vehicle_id END) AS purchases
 FROM sales
 	LEFT JOIN vehicles USING(vehicle_id)
 	LEFT JOIN vehicletypes USING(vehicle_type_id)
 	LEFT JOIN salestypes USING(sales_type_id)
+	LEFT JOIN dealerships USING (dealership_id)
 WHERE dealership_id IN (SELECT dealership_id
 					   FROM top_5)
-GROUP BY sales_type_name
+GROUP BY business_name
 ;
 
 --Used Cars
 --1. For all used cars, which states sold the most? The least?
-with used_cars AS (SELECT *
-				  FROM vehicles
-				  WHERE is_new = 'false')
+with used_cars AS 
+
+(
+SELECT *
+FROM vehicles
+WHERE is_new = 'false'
+)
 				  
 SELECT 
 	state,
@@ -99,9 +115,13 @@ ORDER BY num_sales DESC
 --California sold the most used cars at 69. Missouri and Iowa have sold the least with 7.
 
 --2. For all used cars, which model is greatest in the inventory? Which make is greatest inventory?
-with used_cars AS (SELECT *
-				  FROM vehicles
-				  WHERE is_new = 'false')
+with used_cars AS 
+
+(
+SELECT *
+FROM vehicles
+WHERE is_new = 'false'
+)
 				  
 SELECT 
 	model,
@@ -113,9 +133,13 @@ ORDER BY COUNT(*) DESC
 ;
  -- The Nissan Titan Model appears most often in the used vehicle inventory.
  
- with used_cars AS (SELECT *
-				  FROM vehicles
-				  WHERE is_new = 'false')
+with used_cars AS 
+
+(
+SELECT *
+FROM vehicles
+WHERE is_new = 'false'
+)
 				  
 SELECT 
 	make,
